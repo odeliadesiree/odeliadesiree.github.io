@@ -1,0 +1,391 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debrief</title>
+  <style>
+    html, body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family: Inter, system-ui;
+    }
+
+    body{
+      background-image: url("image.pdf");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .stage{
+      width:960px;
+      height:540px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform-origin: center;
+    }
+
+    #screen-game{
+      width:300px;
+      height:520px;
+      box-sizing:border-box;
+      border-radius:40px;
+      overflow:hidden;
+      background:#fff;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      padding: 44px 16px 16px;
+      gap:10px;
+    }
+    .overlay-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.25);
+      z-index:1;
+    }
+
+    .notch{
+      position:absolute;
+      top:10px;
+      left:50%;
+      transform: translateX(-50%);
+      width:120px;
+      height:20px;
+      background:#111;
+      border-radius:20px;
+      z-index:5;
+    }
+
+    .debrief{
+      display:flex;
+      gap:12px;
+      height:100%;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      z-index:2;
+    }
+
+    .debrief-card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.18);
+      padding:18px 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      flex:1;
+      overflow:visible;
+      position:relative;
+    }
+
+    .scout-name{
+      font-weight:900;
+      font-size:16px;
+      color:#cc288d;
+    }
+    .scout-badge{
+      position:absolute;
+      top:-28px;
+      left:50%;
+      transform:translateX(-50%);
+      width:56px;
+      height:56px;
+      border-radius:50%;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 10px 22px rgba(0,0,0,0.15);
+      z-index:2;
+    }
+    .scout-badge img{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #eee;
+    }
+
+    .slide-title{
+      font-weight:900;
+      font-size:17px;
+      margin-top:-2px;
+    }
+    .slide-body{
+      font-size:13.5px;
+      line-height:1.45;
+      color:#444;
+      margin-top:-2px;
+    }
+    .slide-list{
+      font-size:13.5px;
+      color:#444;
+      margin:0;
+      padding-left:16px;
+      line-height:1.45;
+    }
+    .pill{
+      display:inline-block;
+      font-size:12px;
+      font-weight:800;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#f3f3f3;
+      color:#333;
+    }
+    .pill.good{ background:#eaf7f0; color:#0b7a3e; }
+    .pill.warn{ background:#fff3e6; color:#a35b00; }
+    .pill.bad{ background:#ffe8ee; color:#b0264a; }
+
+    .slide-nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:auto;
+      gap:8px;
+    }
+    .slide-nav.hidden{
+      display:none;
+    }
+    .slide-dots{
+      display:flex;
+      gap:6px;
+    }
+    .dot{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#ddd;
+    }
+    .dot.active{ background:#cc288d; }
+
+    .btn{
+      border:none;
+      background:#f0f0f0;
+      color:#333;
+      font-weight:800;
+      font-size:13px;
+      padding:9px 14px;
+      border-radius:999px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,#ca7eac,#cc288d);
+      color:#fff;
+    }
+    .btn-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div id="screen-game">
+      <div class="notch"></div>
+      <div class="debrief">
+        <div class="debrief-card">
+          <div class="scout-badge">
+            <img src="scoutpfp.png" alt="Scout">
+          </div>
+          <div class="scout-name">Scout</div>
+          <div class="pill" id="outcomePill"></div>
+          <div class="slide-title" id="slideTitle"></div>
+          <div class="slide-body" id="slideBody"></div>
+          <ul class="slide-list" id="slideList"></ul>
+          <div class="btn-row" id="slideButtons"></div>
+          <div class="slide-nav">
+            <button class="btn" id="prevSlide">Back</button>
+            <div class="slide-dots" id="slideDots"></div>
+            <button class="btn" id="nextSlide">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fitStage(){
+      const stage = document.getElementById("stage");
+      if (!stage) return;
+      const scale = Math.min(window.innerWidth / 960, window.innerHeight / 540);
+      stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    const ending = localStorage.getItem("dmGame_ending") || "unknown";
+
+    const outcomeMap = {
+      blocked: { label: "You avoided a potential scam", tone: "good" },
+      ignored: { label: "You avoided a potential scam", tone: "good" },
+      verified: { label: "Verified safely", tone: "good" },
+      failed: { label: "You stayed in the risk zone", tone: "warn" },
+      unknown: { label: "Debrief", tone: "warn" }
+    };
+
+    const slidesByEnding = {
+      blocked: [
+        {
+          title: "",
+          body: "Great job! You blocked early and stopped it from escalating.",
+          bodyBold: true,
+          list: ["Quick boundary setting is a safe move.", "You didn’t give extra personal info."]
+        },
+        {
+          title: "What to watch for 🚩",
+          body: "GenAI scams can copy usernames, bios, and speaking style to feel familiar.",
+          list: ["A familiar handle isn’t proof.", "New account + urgency + secrecy are common signs."]
+        },
+        {
+          title: "",
+          body: "Try again to see the other paths or go back to start",
+          buttons: true
+        }
+      ],
+      ignored: [
+        {
+          title: "",
+          body: "You chose not to engage at the end. That keeps you safer.",
+          bodyBold: true,
+          list: ["Silence removes their leverage.", "You kept the convo short."]
+        },
+        {
+          title: "What to watch for 🚩",
+          body: "GenAI scams can sound friendly and personal on purpose.",
+          list: ["Friendly tone can be faked.", "Private + urgent requests are a red flag."]
+        },
+        {
+          title: "",
+          body: "Try again to see the other paths or go back to start",
+          buttons: true
+        }
+      ],
+      verified: [
+        {
+          title: "",
+          body: "Great job. Verifying through a real-world check keeps you safe.",
+          bodyBold: true,
+          list: ["You didn’t rely on words alone.", "You avoided sharing sensitive info."]
+        },
+        {
+          title: "What to watch for 🚩",
+          body: "GenAI scams mimic people quickly, so verify outside the chat.",
+          list: ["Use calls or known channels.", "Don’t trust new handles."]
+        },
+        {
+          title: "",
+          body: "Try again to see the other paths or go back to start",
+          buttons: true
+        }
+      ],
+      failed: [
+        {
+          title: "",
+          body: "It happens. You kept the conversation going when it felt suspicious.",
+          bodyBold: true,
+          list: ["No shame — this is a learning moment."]
+        },
+        {
+          title: "What to watch for 🚩",
+          body: "GenAI scams can feel personal while building urgency.",
+          list: ["They can fake memories and tone.", "Pressure to reply fast is a red flag."]
+        },
+        {
+          title: "",
+          body: "Try again to see the other paths or go back to start",
+          buttons: true
+        }
+      ],
+      unknown: [
+        { title: "Debrief", body: "Start the game to see your debrief.", buttons: true }
+      ]
+    };
+
+    const slides = slidesByEnding[ending] || slidesByEnding.unknown;
+    const outcome = outcomeMap[ending] || outcomeMap.unknown;
+
+    const outcomePill = document.getElementById("outcomePill");
+    const slideTitle = document.getElementById("slideTitle");
+    const slideBody = document.getElementById("slideBody");
+    const slideList = document.getElementById("slideList");
+    const slideButtons = document.getElementById("slideButtons");
+    const slideDots = document.getElementById("slideDots");
+    const prevSlide = document.getElementById("prevSlide");
+    const nextSlide = document.getElementById("nextSlide");
+    const slideNav = document.querySelector(".slide-nav");
+
+    outcomePill.textContent = outcome.label;
+    outcomePill.classList.add(outcome.tone === "good" ? "good" : "warn");
+
+    let index = 0;
+    function renderSlide(i){
+      const slide = slides[i];
+      slideTitle.textContent = slide.title || "";
+      slideBody.textContent = slide.body || "";
+      slideBody.style.fontWeight = slide.bodyBold ? "800" : "400";
+      slideList.innerHTML = "";
+      if (slide.list && slide.list.length){
+        slide.list.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          slideList.appendChild(li);
+        });
+      }
+      slideButtons.innerHTML = "";
+      if (slide.buttons){
+        const retry = document.createElement("button");
+        retry.className = "btn";
+        retry.textContent = "Try a different path";
+        retry.onclick = () => { window.location.href = "page4.html"; };
+        const start = document.createElement("button");
+        start.className = "btn primary";
+        start.textContent = "Back to start";
+        start.onclick = () => { window.location.href = "page1.html"; };
+        slideButtons.appendChild(retry);
+        slideButtons.appendChild(start);
+      }
+
+      slideDots.innerHTML = "";
+      slides.forEach((_, idx) => {
+        const dot = document.createElement("div");
+        dot.className = "dot" + (idx === i ? " active" : "");
+        slideDots.appendChild(dot);
+      });
+
+      const isLast = i === slides.length - 1;
+      slideNav.classList.toggle("hidden", isLast);
+      prevSlide.style.visibility = i === 0 ? "hidden" : "visible";
+      nextSlide.disabled = isLast;
+    }
+
+    prevSlide.onclick = () => {
+      if (index > 0){
+        index -= 1;
+        renderSlide(index);
+      }
+    };
+    nextSlide.onclick = () => {
+      if (index < slides.length - 1){
+        index += 1;
+        renderSlide(index);
+      }
+    };
+
+    renderSlide(index);
+
+    window.addEventListener("load", fitStage);
+    window.addEventListener("resize", fitStage);
+  </script>
+</body>
+</html>

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DM Game</title>
+
+  <style>
+    html, body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family: Inter, system-ui;
+    }
+
+    body{
+      background-image: url("image.pdf");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .stage{
+      width:960px;
+      height:540px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform-origin: center;
+    }
+
+    #screen-game{
+      width:300px;
+      height:520px;
+      box-sizing:border-box;
+      border-radius:40px;
+      overflow:hidden;
+      background:#fff;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      padding: 44px 16px 16px;
+      gap:10px;
+    }
+
+    .notch{
+      position:absolute;
+      top:10px;
+      left:50%;
+      transform: translateX(-50%);
+      width:120px;
+      height:20px;
+      background:#111;
+      border-radius:20px;
+      z-index:5;
+    }
+
+    .dm-topbar{
+      height:40px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .dm-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      cursor:pointer;
+      min-width:0;
+      user-select:none;
+    }
+
+    .dm-avatar{
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      background-image: url("aloysious.png");
+      background-position: center;
+      background-size: 150%;
+      background-position: center 35%;
+      background-repeat: no-repeat;
+      border:1px solid #eee;
+      flex:0 0 auto;
+    }
+
+    .dm-handle{
+      font-weight:800;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .dm-subtle{
+      font-size:10px;
+      color:#999;
+      margin-top:2px;
+    }
+
+    .dm-block{
+      border:none;
+      background:#ffe7ee;
+      color:#cc288d;
+      font-weight:800;
+      font-size:12px;
+      padding:8px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      position:relative;
+    }
+    .tip-active .dm-block{
+      box-shadow:0 0 0 3px rgba(204,40,141,0.2);
+      animation:pulse 1.2s infinite ease-in-out;
+    }
+
+    .dm-chat{
+      flex:1;
+      overflow:auto;
+      overflow-x:hidden;
+      padding: 6px 0;
+      scrollbar-width: none; 
+      -ms-overflow-style: none; 
+    }
+    .dm-chat::-webkit-scrollbar{
+      width:0;
+      height:0;
+    }
+
+    .dm-row{ display:flex; margin:8px 0; gap:6px; }
+    .dm-row.left{ justify-content:flex-start; }
+    .dm-row.right{ justify-content:flex-end; }
+    .dm-row.align-bottom{ align-items:center; }
+
+    .dm-bubble{
+      max-width:82%;
+      padding:10px 12px;
+      border-radius:16px;
+      font-size:12.5px;
+      line-height:1.35;
+      background:#f3f3f3;
+      position:relative;
+    }
+    .dm-bubble.me{ background:#cc288d; color:#fff; }
+    .dm-avatar-inline{
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      background-image: url("aloysious.png");
+      background-size: 150%;
+      background-position: center 35%;
+      background-repeat: no-repeat;
+      border:1px solid #eee;
+      flex:0 0 auto;
+      align-self:center;
+    }
+    .dm-avatar-inline.user{
+      background-image: none;
+      background-size: cover;
+      background-position: center;
+    }
+    .dm-row.align-bottom .dm-avatar-inline{ align-self:flex-end; }
+    .dm-bubble.thought{
+      background:#f7f1f6;
+      color:#6b5a64;
+      font-style:italic;
+      border:1px dashed #e1c9d7;
+    }
+    .thought-label{
+      font-weight:700;
+      font-style:normal;
+    }
+
+    .dm-typing{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      opacity:0.65;
+      background:#f3f3f3;
+      padding:8px 10px;
+      border-radius:999px;
+    }
+    .dm-dots{ display:inline-flex; gap:4px; }
+    .dm-dots span{
+      width:5px;height:5px;border-radius:99px;
+      background:#aaa; display:inline-block;
+      animation:bounce 0.9s infinite ease-in-out;
+    }
+    .dm-dots span:nth-child(2){ animation-delay:0.15s; }
+    .dm-dots span:nth-child(3){ animation-delay:0.3s; }
+    @keyframes bounce{
+      0%,80%,100%{ transform:translateY(0); opacity:0.6; }
+      40%{ transform:translateY(-3px); opacity:1; }
+    }
+    @keyframes pulse{
+      0%,100%{ transform:scale(1); }
+      50%{ transform:scale(1.03); }
+    }
+
+    .dm-options{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:8px;
+      padding-top:8px;
+      border-top:1px solid #eee;
+      overflow-x:hidden;
+    }
+    .dm-opt{
+      background:#f3f3f3;
+      border:1px solid #e7e7e7;
+      color:#333;
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      width:fit-content;
+      max-width:90%;
+      text-align:right;
+    }
+
+    .tip-overlay{
+      position:absolute;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.35);
+      padding:16px;
+      z-index:999;
+    }
+    .tip-overlay.active{ display:flex; }
+
+    .tip-card{
+      width:260px;
+      background:#fff;
+      border-radius:16px;
+      padding:12px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.25);
+    }
+    .tip-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .tip-scout{ font-weight:900; font-size:15px; color:#cc288d; display:flex; align-items:center; gap:8px; }
+    .tip-scout-img{
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #eee;
+    }
+    .tip-close{
+      border:none;
+      background:#efefef;
+      border-radius:10px;
+      padding:4px 8px;
+      cursor:pointer;
+    }
+    .tip-body{ font-size:12px; line-height:1.45; opacity:0.9; margin-bottom:10px; }
+    .tip-ok{
+      width:100%;
+      border:none;
+      background:linear-gradient(135deg,#ca7eac,#cc288d);
+      color:#fff;
+      font-weight:900;
+      font-size:12px;
+      padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+    }
+
+    .debrief-overlay{
+      position:absolute;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.35);
+      padding:16px;
+      z-index:1000;
+    }
+    .debrief-overlay.active{ display:flex; }
+    .debrief-card{
+      width:100%;
+      max-width:260px;
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.18);
+      padding:18px 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      position:relative;
+    }
+    .scout-badge{
+      position:absolute;
+      top:-28px;
+      left:50%;
+      transform:translateX(-50%);
+      width:56px;
+      height:56px;
+      border-radius:50%;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 10px 22px rgba(0,0,0,0.15);
+      z-index:2;
+    }
+    .scout-badge img{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #eee;
+    }
+    .scout-name{
+      font-weight:900;
+      font-size:16px;
+      color:#cc288d;
+    }
+    .pill{
+      display:inline-block;
+      font-size:12px;
+      font-weight:800;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#f3f3f3;
+      color:#333;
+    }
+    .pill.good{ background:#eaf7f0; color:#0b7a3e; }
+    .pill.warn{ background:#fff3e6; color:#a35b00; }
+    .slide-title{
+      font-weight:900;
+      font-size:17px;
+      margin-top:-2px;
+    }
+    .slide-body{
+      font-size:13.5px;
+      line-height:1.45;
+      color:#444;
+      margin-top:-2px;
+      white-space:pre-line;
+    }
+    .slide-body strong{ font-weight:900; }
+    .slide-list{
+      font-size:13.5px;
+      color:#444;
+      margin:0;
+      padding-left:16px;
+      line-height:1.45;
+    }
+    .btn{
+      border:none;
+      background:#f0f0f0;
+      color:#333;
+      font-weight:800;
+      font-size:13px;
+      padding:9px 14px;
+      border-radius:999px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,#ca7eac,#cc288d);
+      color:#fff;
+    }
+    .btn-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .slide-nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:auto;
+      gap:8px;
+    }
+    .slide-nav.hidden{ display:none; }
+    .slide-dots{
+      display:flex;
+      gap:6px;
+    }
+    .dot{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#ddd;
+    }
+    .dot.active{ background:#cc288d; }
+  </style>
+</head>
+
+<body>
+  <div class="stage" id="stage">
+    <div id="screen-game">
+      <div class="notch"></div>
+
+      <div class="dm-topbar">
+        <div class="dm-left" id="openProfile" title="Tap to view profile">
+          <div class="dm-avatar"></div>
+          <div>
+            <div class="dm-handle">@aloxycis_</div>
+            <div class="dm-subtle">Tap to view profile</div>
+          </div>
+        </div>
+        <button class="dm-block" id="btnBlockTop">Block</button>
+      </div>
+
+      <div class="dm-chat" id="dmChat"></div>
+      <div class="dm-options" id="dmOptions"></div>
+
+      <div class="tip-overlay" id="tipOverlay">
+        <div class="tip-card">
+          <div class="tip-header">
+            <div class="tip-scout">
+              <img class="tip-scout-img" src="scoutpfp.png" alt="Scout">
+              <span>Scout</span>
+            </div>
+            <button class="tip-close" id="tipClose">✕</button>
+          </div>
+          <div class="tip-body" id="tipBody"></div>
+          <button class="tip-ok" id="tipOk">Got it</button>
+        </div>
+      </div>
+
+      <div class="tip-overlay" id="profileOverlay">
+        <div class="tip-card">
+          <div class="tip-header">
+            <div class="tip-scout">Profile</div>
+            <button class="tip-close" id="profileClose">✕</button>
+          </div>
+          <div class="tip-body">
+            <b>@aloxycis_</b><br>
+            Name: Aloysious<br>
+            Bio: “just vibing ✌️”<br>
+            Mutuals: 0<br>
+            Joined: recently
+          </div>
+          <button class="tip-ok" id="profileOk">Close</button>
+        </div>
+      </div>
+
+      <div class="debrief-overlay" id="debriefOverlay">
+        <div class="debrief-card">
+          <div class="scout-badge">
+            <img src="scoutpfp.png" alt="Scout">
+          </div>
+          <div class="scout-name">Scout</div>
+          <div class="pill" id="outcomePill"></div>
+          <div class="slide-title" id="slideTitle"></div>
+          <div class="slide-body" id="slideBody"></div>
+          <ul class="slide-list" id="slideList"></ul>
+          <div class="btn-row" id="slideButtons"></div>
+          <div class="slide-nav" id="slideNav">
+            <button class="btn" id="prevSlide">Back</button>
+            <div class="slide-dots" id="slideDots"></div>
+            <button class="btn" id="nextSlide">Next</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function fitStage(){
+      const stage = document.getElementById("stage");
+      if (!stage) return;
+      const scale = Math.min(window.innerWidth / 960, window.innerHeight / 540);
+      stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function startGame(){
+      fitStage();
+      const chatEl = document.getElementById("dmChat");
+      const optionsEl = document.getElementById("dmOptions");
+
+      const tipOverlay = document.getElementById("tipOverlay");
+      const tipBody = document.getElementById("tipBody");
+      const profileOverlay = document.getElementById("profileOverlay");
+
+      const playerName = localStorage.getItem("userName") || "You";
+      const userPhoto = localStorage.getItem("photoData");
+      const state = {
+        name: localStorage.getItem("userName") || "friend",
+        score: 0,           // hidden
+        actions: [],
+        ended: false
+      };
+
+      function saveAndGoDebrief(ending){
+        localStorage.setItem("dmGame_actions", JSON.stringify(state.actions));
+        localStorage.setItem("dmGame_score", String(state.score));
+        localStorage.setItem("dmGame_ending", ending);
+        showDebrief(ending);
+      }
+
+      function logAction(sceneId, choiceText, points){
+        state.actions.push({ sceneId, choiceText });
+        state.score += (points || 0);
+      }
+
+      function push(side, html, isMe=false){
+        const row = document.createElement("div");
+        row.className = `dm-row ${side}`;
+        const b = document.createElement("div");
+        b.className = "dm-bubble" + (isMe ? " me" : "");
+        b.innerHTML = html;
+        if (side === "left"){
+          const avatar = document.createElement("span");
+          avatar.className = "dm-avatar-inline";
+          row.appendChild(avatar);
+        }
+        row.appendChild(b);
+        if (side === "right" && isMe && userPhoto){
+          const avatar = document.createElement("span");
+          avatar.className = "dm-avatar-inline user";
+          avatar.style.backgroundImage = `url("${userPhoto}")`;
+          row.appendChild(avatar);
+        }
+        chatEl.appendChild(row);
+        if (b.offsetHeight > 34){
+          row.classList.add("align-bottom");
+        }
+        chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" });
+      }
+      function pushThought(text){
+        const row = document.createElement("div");
+        row.className = "dm-row right";
+        const b = document.createElement("div");
+        b.className = "dm-bubble thought";
+        b.textContent = text;
+        row.appendChild(b);
+        chatEl.appendChild(row);
+        chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" });
+      }
+
+      function showTyping(){
+        const row = document.createElement("div");
+        row.className = "dm-row left";
+        row.id = "typingRow";
+        row.innerHTML = `
+          <div class="dm-typing">
+            @aloxycis_ is typing
+            <span class="dm-dots"><span></span><span></span><span></span></span>
+          </div>
+        `;
+        chatEl.appendChild(row);
+        chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" });
+      }
+      function hideTyping(){
+        const t = document.getElementById("typingRow");
+        if (t) t.remove();
+      }
+
+      function showTip(text){
+        tipBody.innerHTML = text;
+        tipOverlay.classList.add("active");
+        document.body.classList.add("tip-active");
+      }
+      let pendingThought = null;
+      let pendingOptions = null;
+      const tipQueue = [];
+      function closeTip(){
+        tipOverlay.classList.remove("active");
+        document.body.classList.remove("tip-active");
+        if (tipQueue.length){
+          showTip(tipQueue.shift());
+          return;
+        }
+        if (pendingThought){
+          pushThought(pendingThought);
+          pendingThought = null;
+        }
+        if (pendingOptions){
+          renderOptions(pendingOptions);
+          pendingOptions = null;
+        }
+      }
+
+      document.getElementById("tipClose").onclick = closeTip;
+      document.getElementById("tipOk").onclick = closeTip;
+
+      document.getElementById("openProfile").onclick = () => profileOverlay.classList.add("active");
+      document.getElementById("profileClose").onclick = () => profileOverlay.classList.remove("active");
+      document.getElementById("profileOk").onclick = () => profileOverlay.classList.remove("active");
+
+      let currentId = 1;
+
+      document.getElementById("btnBlockTop").onclick = () => {
+        if (state.ended) return;
+        const ok = window.confirm("Are you sure you want to block @aloxycis_?");
+        if (!ok) return;
+        logAction(currentId, "Blocked (top button)", +3);
+        state.ended = true;
+        saveAndGoDebrief("blocked");
+      };
+
+      const scenes = {
+        1: {
+          from: `hey ${state.name}! do you remember me?`,
+          thoughtAfter: "Hmm... this username seems familiar. Oh, it’s Aloysious from secondary school.",
+          options: [
+            { text: "Who's this?", next: "2A", points: +1 },
+            { text: "Hi, I think so?", next: "2B", points: 0 },
+            { text: "Ignore", next: "2B", points: +1, silent: true }
+          ]
+        },
+        "2A": {
+          from: `lol long time no see, it’s been awhile ya<br>aloysious from secondary school here`,
+          options: [
+            { text: "Ohhh, what's up?", next: 3, points: 0 },
+            { text: "Hmm okay…", next: 3, points: 0 },
+            { text: "Ignore", next: 3, points: +1, silent: true }
+          ]
+        },
+        "2B": {
+          from: `lol long time no see. it’s been awhile ya`,
+          options: [
+            { text: "What's up?", next: 3, points: 0 },
+            { text: "Hahaha yeah", next: 3, points: 0 },
+            { text: "Ignore", next: 3, points: +1, silent: true }
+          ]
+        },
+        3: {
+          from: `my old account got locked 😭<br>this is my new one btw`,
+          options: [
+            { text: "What was your old username?", next: 4, points: +1 },
+            { text: "Ohhh ok", next: 5, points: -1 },
+            { text: "Oh that's weird…", next: 5, points: +1, thought: true }
+          ]
+        },
+        4: {
+          from: `ahhh i forgot the exact handle<br>it was super long`,
+          options: [
+            { text: "Uh ok", next: 5, points: -1 },
+            { text: "Yeah I remember it was quite long", next: 5, points: -1 },
+            { text: "Ignore", next: 5, points: +1, silent: true }
+          ]
+        },
+        5: {
+          from: `are you free now?`,
+          options: [
+            { text: "What's going on?", next: 6, points: 0 },
+            { text: "I can't talk right now", next: "5A", points: +1 },
+            { text: "Ignore", next: 6, points: +1, silent: true }
+          ]
+        },
+        "5A": {
+          from: `it’ll take awhile only 😭<br>can you reply faster?`,
+          options: [
+            { text: "Ok, but be quick", next: 6, points: 0 },
+            { text: "Ignore", next: 6, points: +1, silent: true }
+          ]
+        },
+        6: {
+          from: `pls don’t tell anyone about this…`,
+          options: [
+            { text: "What is this about?", next: 7, points: 0 },
+            { text: "Why can't you tell anyone?", next: 7, points: 0 },
+            { text: "Ignore", next: 8, points: +1, silent: true }
+          ]
+        },
+        7: {
+          from: `oh bcos it’s quite private 😔`,
+          next: 8
+        },
+        8: {
+          from: `i didn’t know who else to message…`,
+          next: 9
+        },
+        9: {
+          from: `can you help me with something?`,
+          options: [
+            { text: "Help with what?", next: "END_FAILED", points: -2 },
+            { text: "Call Aloysious", next: "END_VERIFIED", points: +3 },
+            { text: "Ignore", next: "END_IGNORED", points: +2, silent: true }
+          ]
+        }
+      };
+
+      const outcomeMap = {
+        blocked: { label: "You avoided a potential scam", tone: "good" },
+        ignored: { label: "You avoided a potential scam", tone: "good" },
+        verified: { label: "Verified safely", tone: "good" },
+        failed: { label: "You stayed in the risk zone", tone: "warn" },
+        unknown: { label: "Debrief", tone: "warn" }
+      };
+
+      const slidesByEnding = {
+        blocked: [
+          {
+            title: "",
+            body: "Great job! You blocked early and stopped it from escalating.",
+            bodyBold: true,
+            list: ["Quick boundary setting is a safe move."]
+          },
+          {
+            title: "",
+            body: "GenAI can make scammers sound familiar and convincing. <strong>Verify outside the chat.</strong>",
+            list: ["A familiar handle isn’t proof."]
+          },
+          {
+            title: "",
+            body: "Try again to see the other paths or go back to start",
+            buttons: true
+          }
+        ],
+        ignored: [
+          {
+            title: "",
+            body: "You chose not to engage at the end. That keeps you safer.",
+            bodyBold: true,
+            list: ["Silence removes their leverage."]
+          },
+          {
+            title: "",
+            body: "GenAI can generate friendly messages to <strong>build trust quickly</strong>.",
+            list: ["Ignore or verify before replying."]
+          },
+          {
+            title: "",
+            body: "Try again to see the other paths or go back to start",
+            buttons: true
+          }
+        ],
+        verified: [
+          {
+            title: "",
+            body: "Great job. Verifying through a real-world check keeps you safe.",
+            bodyBold: true,
+            list: [
+              "You didn’t rely on words alone.",
+              "Aloysious mentioned he got hacked on Instagram and hasn't created a new account since."
+            ]
+          },
+          {
+            title: "",
+            body: "GenAI can mimic people quickly. <strong>Verification beats guessing.</strong>",
+            list: ["Don’t trust new handles."]
+          },
+          {
+            title: "",
+            body: "Try again to see the other paths or go back to start",
+            buttons: true
+          }
+        ],
+        failed: [
+          {
+            title: "",
+            body: "It happens.\nYou kept the conversation going when it felt suspicious.",
+            bodyBold: false,
+            list: []
+          },
+          {
+            title: "",
+            body: "GenAI helps scammers scale <strong>urgency and secrecy</strong> to keep you replying.",
+            list: ["Pause, verify, or block."]
+          },
+          {
+            title: "",
+            body: "Try again to see the other paths or go back to start",
+            buttons: true
+          }
+        ],
+        unknown: [
+          { title: "Debrief", body: "Start the game to see your debrief.", buttons: true }
+        ]
+      };
+
+      function showDebrief(ending){
+        const debriefOverlay = document.getElementById("debriefOverlay");
+        const outcomePill = document.getElementById("outcomePill");
+        const slideTitle = document.getElementById("slideTitle");
+        const slideBody = document.getElementById("slideBody");
+        const slideList = document.getElementById("slideList");
+        const slideButtons = document.getElementById("slideButtons");
+        const slideDots = document.getElementById("slideDots");
+        const prevSlide = document.getElementById("prevSlide");
+        const nextSlide = document.getElementById("nextSlide");
+        const slideNav = document.getElementById("slideNav");
+
+        const slides = slidesByEnding[ending] || slidesByEnding.unknown;
+        const outcome = outcomeMap[ending] || outcomeMap.unknown;
+
+        outcomePill.textContent = outcome.label;
+        outcomePill.classList.remove("good", "warn");
+        outcomePill.classList.add(outcome.tone === "good" ? "good" : "warn");
+
+        let index = 0;
+        function renderSlide(i){
+          const slide = slides[i];
+          slideTitle.textContent = slide.title || "";
+          slideBody.innerHTML = slide.body || "";
+          slideBody.style.fontWeight = slide.bodyBold ? "800" : "400";
+          outcomePill.style.display = slide.buttons ? "none" : "inline-block";
+
+          slideList.innerHTML = "";
+          if (slide.list && slide.list.length){
+            slide.list.forEach(item => {
+              const li = document.createElement("li");
+              li.textContent = item;
+              slideList.appendChild(li);
+            });
+          }
+
+          slideButtons.innerHTML = "";
+          if (slide.buttons){
+            const retry = document.createElement("button");
+            retry.className = "btn";
+            retry.textContent = "Try a different path";
+            retry.onclick = () => { window.location.href = "page4.html"; };
+            const start = document.createElement("button");
+            start.className = "btn primary";
+            start.textContent = "Back to start";
+            start.onclick = () => { window.location.href = "page1.html"; };
+            slideButtons.appendChild(retry);
+            slideButtons.appendChild(start);
+          }
+
+          slideDots.innerHTML = "";
+          slides.forEach((_, idx) => {
+            const dot = document.createElement("div");
+            dot.className = "dot" + (idx === i ? " active" : "");
+            slideDots.appendChild(dot);
+          });
+
+          const isLast = i === slides.length - 1;
+          slideNav.classList.toggle("hidden", isLast);
+          prevSlide.style.visibility = i === 0 ? "hidden" : "visible";
+          nextSlide.disabled = isLast;
+        }
+
+        prevSlide.onclick = () => {
+          if (index > 0){
+            index -= 1;
+            renderSlide(index);
+          }
+        };
+        nextSlide.onclick = () => {
+          if (index < slides.length - 1){
+            index += 1;
+            renderSlide(index);
+          }
+        };
+
+        renderSlide(index);
+        debriefOverlay.classList.add("active");
+      }
+
+      function renderOptions(opts){
+        optionsEl.innerHTML = "";
+        if (!opts || !opts.length) return;
+        opts.forEach(o => {
+          const b = document.createElement("button");
+          b.className = "dm-opt";
+          b.textContent = o.text;
+          b.onclick = () => choose(o);
+          optionsEl.appendChild(b);
+        });
+        requestAnimationFrame(() => {
+          chatEl.scrollTop = chatEl.scrollHeight;
+        });
+      }
+
+      function go(id){
+        currentId = id;
+        const scene = scenes[id];
+
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          push("left", scene.from);
+          if (scene.options && tipOverlay.classList.contains("active")){
+            pendingOptions = scene.options;
+          } else {
+            renderOptions(scene.options);
+          }
+          if (scene.thoughtAfter){
+            pendingThought = scene.thoughtAfter;
+          }
+          if (!scene.options && scene.next){
+            setTimeout(() => go(scene.next), 600);
+          }
+        }, 650);
+      }
+
+      function choose(option){
+        if (state.ended) return;
+
+        if (option.thought){
+          pushThought(option.text);
+        } else if (!option.silent){
+          push("right", option.text, true);
+        }
+
+        logAction(currentId, option.text, option.points);
+
+        if (option.next === "END_IGNORED"){
+          state.ended = true;
+          saveAndGoDebrief("ignored");
+          return;
+        }
+        if (option.next === "END_BLOCKED"){
+          state.ended = true;
+          saveAndGoDebrief("blocked");
+          return;
+        }
+        if (option.next === "END_FAILED"){
+          state.ended = true;
+          saveAndGoDebrief("failed");
+          return;
+        }
+        if (option.next === "END_VERIFIED"){
+          state.ended = true;
+          saveAndGoDebrief("verified");
+          return;
+        }
+
+        optionsEl.innerHTML = "";
+        setTimeout(() => go(option.next), 450);
+      }
+
+      chatEl.innerHTML = "";
+      optionsEl.innerHTML = "";
+      tipQueue.push("Tap <b>Block</b> anytime if the conversation feels weird or unsafe.");
+      tipQueue.push("<b>View profile</b> on top to spot red flags.<br>• No mutuals<br>• New account");
+      showTip("You just received a DM from <b>@aloxycis</b>.");
+      go(1);
+    }
+
+    window.addEventListener("load", startGame);
+    window.addEventListener("resize", fitStage);
+  </script>
+</body>
+</html>

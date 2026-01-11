@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Set Up</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+
+     body {
+  margin: 0;
+  width: 960px;
+  height: 540px;
+  overflow: hidden;
+
+  background-image: url("image.pdf");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+    }
+
+    .container { position:absolute; top:0; left:0; width:960px; height:540px; display:flex; align-items:center; justify-content:center; }
+
+    .phone{
+      width:300px; height:520px; background:#fff; border-radius:40px;
+      box-shadow:0 20px 40px rgba(0,0,0,0.25);
+      position:relative; overflow:hidden;
+      padding:58px 24px 44px;
+    }
+
+    .notch{
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
+      width:120px; height:20px; background:#111; border-radius:20px; z-index:10;
+    }
+
+    .setup-title{ font-size:20px; margin:0 0 10px; opacity:0.85; text-align:center; }
+
+    .card{
+      width:100%; background:#fff; border:1px solid #eee; border-radius:18px;
+      padding:22px 18px; min-height:170px; text-align:left;
+      box-shadow:0 10px 20px rgba(0,0,0,0.04);
+      margin-top:14px;
+    }
+
+    .label{ font-size:11px; opacity:0.6; margin-bottom:8px; margin-top:-12px; }
+    .prompt{ font-size:16px; font-weight:700; margin-bottom:20px; letter-spacing:-0.2px; }
+
+    input[type="text"]{
+      width:100%; padding:12px; border-radius:14px; border:1px solid #ddd;
+      font-size:14px; margin-bottom:22px;
+    }
+
+    button{
+      border:none; background:linear-gradient(135deg,#ca7eac,#cc288d);
+      color:#fff; font-size:16px; padding:10px 18px; border-radius:999px;
+      cursor:pointer; display:block; margin:0 auto;
+      transition:transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    button:hover{ transform:scale(1.05); box-shadow:0 10px 20px rgba(0,0,0,0.2); }
+
+    .row{ display:flex; gap:10px; margin-top:20px; }
+    .btn-secondary{
+      flex:1; background:#fff; color:#222; border:1px solid #eee; box-shadow:none;
+      padding:8px 12px; font-size:14px; border-radius:999px;
+    }
+    .btn-allow{ background:linear-gradient(135deg,#ca7eac,#cc288d); color:#fff; border:none; }
+    .btn-skip{ background:#f3f3f3; color:#555; border:1px solid #ddd; }
+
+    .tiny{ font-size:12px; opacity:0.7; margin-top:20px; text-align:center; }
+
+    video, canvas{
+      width:150px; height:150px; border-radius:50%; background:#ddd;
+      object-fit:cover; display:block; margin:12px auto;
+    }
+
+    .btn-disabled{
+      background:#eee !important; color:#aaa !important; cursor:not-allowed !important;
+      box-shadow:none !important; transform:none !important;
+    }
+    .btn-disabled:hover{ transform:none !important; box-shadow:none !important; }
+
+    .ready-row{ display:flex; align-items:center; gap:16px; margin-top:6px; margin-bottom:14px; }
+    .profile-thumb{ width:72px; height:72px; border-radius:50%; object-fit:cover; background:#e0e0e0; flex-shrink:0; }
+    .ready-text{ font-size:20px; font-weight:700; line-height:1.2; }
+    .ready-text span{ color:#cc288d; }
+
+    .photo-actions{ display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:18px; }
+    .photo-actions button{ width:220px; }
+    .btn-ghost{ background:#efefef; color:#8a8a8a; box-shadow:none; }
+    .btn-ghost:hover{ transform:none; box-shadow:none; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="phone">
+      <div class="notch"></div>
+
+      <h1 class="setup-title">Let’s set you up 👋</h1>
+
+      <!-- Step 1 -->
+      <div class="card" id="step-name">
+        <div class="label">Step 1/3</div>
+        <div class="prompt">What should we call you?</div>
+        <input type="text" id="userName" placeholder="Type your name..." maxlength="15" />
+        <button id="btnNameNext">Next</button>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="card" id="step-camera" style="display:none;">
+        <div class="label">Step 2/3</div>
+        <div class="prompt">Do you want to use your camera?</div>
+        <div class="row">
+          <button class="btn-secondary btn-allow" id="btnAllowCamera">Allow</button>
+          <button class="btn-secondary btn-skip" id="btnSkipCamera">Skip</button>
+        </div>
+        <div class="tiny">You can skip — the game still works.</div>
+      </div>
+
+      <!-- Step 2.5 -->
+      <div class="card" id="step-photo" style="display:none;">
+        <div class="label">Step 2/3</div>
+        <div class="prompt">Take a profile pic 📸</div>
+
+        <video id="camera" autoplay playsinline></video>
+        <canvas id="snapshot" style="display:none;"></canvas>
+
+        <div class="photo-actions">
+          <button id="takePhoto">Take Photo</button>
+          <button class="btn-ghost" id="retakePhoto" style="display:none;">Retake</button>
+          <button id="btnPhotoNext" class="btn-disabled" disabled>Continue →</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="card" id="step-start" style="display:none;">
+        <div class="label">Step 3/3</div>
+        <div class="ready-row">
+          <img id="profileThumb" class="profile-thumb" alt="Profile photo" />
+          <div class="ready-text">Ready, <span id="namePreview">friend</span>?</div>
+        </div>
+        <button id="btnProfileStart">Start →</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+if (!localStorage.getItem("fromPage1")) {
+  localStorage.removeItem("userName");
+  localStorage.removeItem("photoData");
+}
+localStorage.removeItem("fromPage1");
+    const stepName   = document.getElementById("step-name");
+    const stepCamera = document.getElementById("step-camera");
+    const stepPhoto  = document.getElementById("step-photo");
+    const stepStart  = document.getElementById("step-start");
+
+    const nameInput   = document.getElementById("userName");
+    const namePreview = document.getElementById("namePreview");
+    const profileThumb= document.getElementById("profileThumb");
+
+    const video   = document.getElementById("camera");
+    const canvas  = document.getElementById("snapshot");
+    const takeBtn = document.getElementById("takePhoto");
+    const retakeBtn = document.getElementById("retakePhoto");
+    const photoNextBtn = document.getElementById("btnPhotoNext");
+
+    let userName = "";
+    let photoData = null;
+    let stream = null;
+
+    document.getElementById("btnNameNext").addEventListener("click", () => {
+      const name = nameInput.value.trim();
+      if (!name) return alert("Please type your name!");
+      userName = name;
+      localStorage.setItem("userName", userName);
+
+      namePreview.textContent = userName;
+      stepName.style.display = "none";
+      stepCamera.style.display = "block";
+    });
+
+    document.getElementById("btnAllowCamera").addEventListener("click", async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+
+        stepCamera.style.display = "none";
+        stepPhoto.style.display = "block";
+      } catch (e) {
+        alert("Camera blocked. No worries — you can continue without it.");
+        stepCamera.style.display = "none";
+        stepStart.style.display = "block";
+      }
+    });
+
+    document.getElementById("btnSkipCamera").addEventListener("click", () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = null;
+
+      localStorage.removeItem("photoData");
+      profileThumb.removeAttribute("src");
+
+      stepCamera.style.display = "none";
+      stepStart.style.display = "block";
+    });
+
+    takeBtn.addEventListener("click", () => {
+      if (!video.videoWidth) return alert("Camera loading — try again in 1 sec!");
+
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      photoData = canvas.toDataURL("image/png");
+      localStorage.setItem("photoData", photoData);
+
+      video.style.display = "none";
+      canvas.style.display = "block";
+      takeBtn.style.display = "none";
+      retakeBtn.style.display = "inline-block";
+
+      photoNextBtn.classList.remove("btn-disabled");
+      photoNextBtn.disabled = false;
+    });
+
+    retakeBtn.addEventListener("click", () => {
+      photoData = null;
+      localStorage.removeItem("photoData");
+
+      canvas.style.display = "none";
+      video.style.display = "block";
+      takeBtn.style.display = "inline-block";
+      retakeBtn.style.display = "none";
+
+      photoNextBtn.classList.add("btn-disabled");
+      photoNextBtn.disabled = true;
+    });
+
+    document.getElementById("btnPhotoNext").addEventListener("click", () => {
+      if (!photoData) return alert("Please take a photo first!");
+      profileThumb.src = photoData;
+
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = null;
+
+      stepPhoto.style.display = "none";
+      stepStart.style.display = "block";
+    });
+
+    document.getElementById("btnProfileStart").addEventListener("click", () => {
+      window.location.href = "page3.html";
+    });
+  </script>
+</body>
+</html>
